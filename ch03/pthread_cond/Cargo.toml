@@ -1,0 +1,10 @@
+[package]
+name = "pthread_cond"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libc = { version = "0.2.169" }
+
+[lib]
+name = "lib_pthread_cond"
