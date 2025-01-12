@@ -1,0 +1,19 @@
+[package]
+name = "compare_lock"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5" }
+libc = { version = "0.2.169" }
+
+[features]
+default = ["empty"]
+empty = []
+not_empty = []
+mutex = ["not_empty"]
+rwlock = ["not_empty"]
+rwlock_wc = ["not_empty"]
+
+[lib]
+name = "lib_compare_lock"

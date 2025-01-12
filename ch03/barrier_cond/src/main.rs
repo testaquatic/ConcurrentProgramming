@@ -53,9 +53,9 @@ extern "C" fn worker(_: *mut c_void) -> *mut c_void {
     barrier(&NUM, 10);
 
     let t_id = thread::current();
-    println!("Start: {:?}", t_id);
+    println!("Start: {:?}", t_id.id());
     thread::sleep(std::time::Duration::from_secs(1));
-    println!("End: {:?}", t_id);
+    println!("End: {:?}", t_id.id());
 
     ptr::null_mut()
 }
