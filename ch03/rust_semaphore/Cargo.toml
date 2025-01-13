@@ -1,0 +1,9 @@
+[package]
+name = "rust_semaphore"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[lib]
+name = "libsemaphore"

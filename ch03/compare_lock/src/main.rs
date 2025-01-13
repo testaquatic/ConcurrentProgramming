@@ -51,7 +51,6 @@ fn get_command_args() -> CommandArgs {
 }
 
 struct WorkerArgs {
-    id: usize,
     num_thread: usize,
     hold_time: usize,
     count: Arc<Mutex<Vec<usize>>>,
@@ -63,7 +62,6 @@ static FALG: AtomicUsize = AtomicUsize::new(0);
 
 extern "C" fn worker(arg: *mut c_void) -> *mut c_void {
     let arg = arg as *mut WorkerArgs;
-    let id = unsafe { (*arg).id };
     let num_thread = unsafe { (*arg).num_thread };
     let hold_time = unsafe { (*arg).hold_time };
     let count = unsafe { (*arg).count.clone() };
@@ -77,7 +75,7 @@ extern "C" fn worker(arg: *mut c_void) -> *mut c_void {
 
     {
         let mut count = count.lock().unwrap();
-        count[id] = n;
+        count.push(n);
     }
     barrier(&WAITING2, num_thread);
 
@@ -96,8 +94,8 @@ extern "C" fn timer(arg: *mut c_void) -> *mut c_void {
     barrier(&WAITING2, num_thread);
 
     let count = count.lock().unwrap();
-    (0..num_thread - 1).for_each(|i| {
-        println!("thread {} count: {}", i, count[i]);
+    count.iter().enumerate().for_each(|(i, count)| {
+        println!("thread {} count: {}", i, count);
     });
 
     ptr::null_mut()
@@ -106,19 +104,17 @@ extern "C" fn timer(arg: *mut c_void) -> *mut c_void {
 fn main() {
     let command_args = get_command_args();
 
-    let count = Arc::new(Mutex::new(vec![0; command_args.num_thread - 1]));
-    let work_vec = (0..command_args.num_thread)
-        .map(|i| WorkerArgs {
-            id: i,
+    let count = Arc::new(Mutex::new(Vec::with_capacity(command_args.num_thread - 1)));
+
+    (0..command_args.num_thread - 1).for_each(|_| {
+        let mut th = MaybeUninit::uninit();
+        let work_args = WorkerArgs {
             num_thread: command_args.num_thread,
             hold_time: command_args.hold_time,
             count: count.clone(),
-        })
-        .collect::<Vec<_>>();
+        };
 
-    (0..command_args.num_thread - 1).for_each(|i| {
-        let mut th = MaybeUninit::uninit();
-        let work_args = &raw const work_vec[i as usize] as *mut c_void;
+        let work_args = &raw const work_args as *mut c_void;
         unsafe {
             pthread_create(th.as_mut_ptr(), ptr::null(), worker, work_args);
             let th = th.assume_init();
@@ -127,7 +123,12 @@ fn main() {
     });
 
     let mut th = MaybeUninit::uninit();
-    let timer_args = &raw const work_vec[command_args.num_thread - 1] as *mut c_void;
+    let timer_args = WorkerArgs {
+        num_thread: command_args.num_thread,
+        hold_time: command_args.hold_time,
+        count: count.clone(),
+    };
+    let timer_args = &raw const timer_args as *mut c_void;
     unsafe {
         pthread_create(th.as_mut_ptr(), ptr::null(), timer, timer_args);
         let th = th.assume_init();
