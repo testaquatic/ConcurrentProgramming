@@ -1,5 +1,6 @@
 use std::{
     cell::UnsafeCell,
+    hint,
     ops::{Deref, DerefMut},
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -30,11 +31,14 @@ impl<T> SpinLock<T> {
 
     fn lock(&self) -> SpinLockGuard<T> {
         loop {
-            while self.lock.load(Ordering::Relaxed) {}
+            while self.lock.load(Ordering::Relaxed) {
+                hint::spin_loop();
+            }
 
-            if let Ok(_) =
-                self.lock
-                    .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
+            if self
+                .lock
+                .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
+                .is_ok()
             {
                 break;
             }
@@ -47,13 +51,13 @@ impl<T> SpinLock<T> {
 unsafe impl<T> Sync for SpinLock<T> {}
 unsafe impl<T> Send for SpinLock<T> {}
 
-impl<'a, T> Drop for SpinLockGuard<'a, T> {
+impl<T> Drop for SpinLockGuard<'_, T> {
     fn drop(&mut self) {
         self.spin_lock.lock.store(false, Ordering::Release);
     }
 }
 
-impl<'a, T> Deref for SpinLockGuard<'a, T> {
+impl<T> Deref for SpinLockGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -61,7 +65,7 @@ impl<'a, T> Deref for SpinLockGuard<'a, T> {
     }
 }
 
-impl<'a, T> DerefMut for SpinLockGuard<'a, T> {
+impl<T> DerefMut for SpinLockGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.spin_lock.data.get() }
     }
