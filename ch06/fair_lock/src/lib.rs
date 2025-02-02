@@ -96,6 +96,3 @@ impl<T> DerefMut for FairLockGuard<'_, T> {
         unsafe { &mut *self.fair_lock.data.get() }
     }
 }
-
-#[cfg(test)]
-mod tests {}
