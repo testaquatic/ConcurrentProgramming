@@ -1,0 +1,10 @@
+[package]
+name = "tl2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[lib]
+name = "libtl2"
+path = "src/tl2.rs"
