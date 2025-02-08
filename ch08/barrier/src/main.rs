@@ -26,6 +26,5 @@ fn main() {
         let t = std::thread::spawn(node);
         v.push(t);
     });
-
     v.into_iter().for_each(|t| t.join().unwrap());
 }
